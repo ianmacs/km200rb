@@ -84,7 +84,7 @@ module Km200
 
   # Decrypt base64 encoded data with key, return cleartext but remove any 0 bytes
   def self.aes_decrypt_base64(data, key)
-    aes = OpenSSL::Cipher::AES.new(256, :CBC)
+    aes = OpenSSL::Cipher::AES.new(256, :ECB)
     aes.decrypt
     aes.key = key
     aes.padding = 0

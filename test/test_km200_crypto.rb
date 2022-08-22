@@ -138,34 +138,12 @@ class TestKm200Crypto < Test::Unit::TestCase
     actual_decrypted = crypto.decrypt(ciphertext)
     assert_equal(cleartext, actual_decrypted)
 
+    # Test round-trip encryption and decryption for longer string
+    cleartext = "This is a longer string which should be encrypted and decrypted correctly."
+    actual_encrypted = crypto.encrypt(cleartext)
+    actual_decrypted = crypto.decrypt(actual_encrypted)
+    assert_equal(cleartext, actual_decrypted)
+
     File.delete(filename)
   end
-
-#  def test_http_get_request
-#    # Create http server that reacts to requests in other thread.
-#    class Server < WEBrick::HTTPServlet::AbstractServlet
-#      Instance=[]
-#      def do_GET(request, response)
-#        response.status = 200
-#        response.body = "Hello GET!"
-#        puts "Received GET request"
-#      end
-#      def do_POST(request, response)
-#        response.status = 200
-#        response.body = "Hello POST!"
-#        puts "Received POST request"
-#        p request
-#        if request.query["data"] == "shutdown"
-#          puts "Shutting down server"
-#          Instance[0].shutdown
-#        end
-#      end
-#    end
-#    Server::Instance[0] = WEBrick::HTTPServer.new(:Port => 0)
-#    server = Server::Instance[0]
-#    server.mount "/", Server
-#    Thread.new{server.start}
-#    webrick_port = server.config[:Port]
-#
-
 end
