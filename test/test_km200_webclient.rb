@@ -2,8 +2,6 @@
 require 'test/unit'
 require 'json'
 require_relative '../lib/km200_webclient.rb'
-require_relative '../lib/km200_crypto.rb'
-
 
 # Tests in this fixture connect to a real KM200 device and therefore need a
 # configuration file with working credentials.  If there is no credentials
@@ -47,7 +45,6 @@ class TestKm200Webclient < Test::Unit::TestCase
       new_value = (original_value == 5) ? 0 : 5
       new_json = '{"value":%d}' % new_value
       new_base64 = @crypto.encrypt(new_json)
-      $stderr.puts "new base64: #{new_base64}"
       Km200.http_post(@host, '/heatingCircuits/hc1/temperatureLevels/eco', new_base64)
 
       # Reread value and check that it is now changed.
@@ -69,4 +66,60 @@ class TestKm200Webclient < Test::Unit::TestCase
       assert_equal(original_value, reset_value)
     end 
   end
+
+  def test_class_Webclient_json
+    if @crypto && @config && @host # skip tests if no credentials available
+      webclient = Km200::Webclient.new(@file)
+
+      # Do basically the same as test_http_post above, but using the Webclient class.
+      original_json = webclient.read_json('/heatingCircuits/hc1/temperatureLevels/eco')
+      original_value = JSON.parse(original_json)['value']
+
+      new_value = (original_value == 5) ? 0 : 5
+      new_json = '{"value":%d}' % new_value
+      webclient.write_json('/heatingCircuits/hc1/temperatureLevels/eco', new_json)
+
+      altered_json = webclient.read_json('/heatingCircuits/hc1/temperatureLevels/eco')
+      altered_value = JSON.parse(altered_json)['value']
+      assert_equal(new_value, altered_value)
+      assert_not_equal(original_value, altered_value)
+
+      original_json = '{"value":%.1f}' % original_value
+      webclient.write_json('/heatingCircuits/hc1/temperatureLevels/eco', original_json)
+    end
+  end
+
+  def test_class_Webclient_data
+    if @crypto && @config && @host # skip tests if no credentials available
+      webclient = Km200::Webclient.new(@file)
+
+      # Read a string value
+      expected_hardware = 'iCom_Low_NSC_v1'
+      actual_hardware = webclient.read_data('/gateway/versionHardware')
+      assert_equal(expected_hardware, actual_hardware)
+
+      # Read a numeric value
+      temperature = webclient.read_data('/dhwCircuits/dhw1/actualTemp')
+      assert_kind_of(Numeric, temperature)
+
+      # Read a switchProgram value
+      heating_program = webclient.read_data('/heatingCircuits/hc1/switchPrograms/A')
+      assert_kind_of(Array, heating_program)
+      assert_equal(28, heating_program.length)
+      heating_program.each do |switchPoint|
+        assert_kind_of(Hash, switchPoint)
+        assert_equal(['dayOfWeek','setpoint','time'], switchPoint.keys)
+        assert_kind_of(Numeric, switchPoint['time'])
+        assert_kind_of(String, switchPoint['setpoint'])
+        assert_kind_of(String, switchPoint['dayOfWeek'])
+      end
+
+      # Read a directory listing
+      directory = webclient.read_data('/heatingCircuits/hc1')
+      assert_kind_of(Set, directory)
+      assert_equal(25, directory.length)
+      assert_include(directory, '/heatingCircuits/hc1/currentRoomSetpoint')
+    end
+  end
+
 end
